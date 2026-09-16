@@ -4,7 +4,7 @@ import pandas as pd
 # Configuración básica de la página
 st.set_page_config(
     page_title="Dine's Arts Club - Verificación",
-    page_icon="🧁",
+    page_icon="🌐",
     layout="centered"
 )
 
