@@ -156,7 +156,8 @@ if df_members is not None:
                 
                 <div class="card-footer">
                     Sistema de Control de Membresías — Dine's Arts
-                   </div>
+                    
+                    <div class="card-footer">
                    Aprende, Crea y Disfruta
                 </div>
             </div>
