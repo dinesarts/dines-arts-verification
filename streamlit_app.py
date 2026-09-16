@@ -1,193 +1,124 @@
 import streamlit as st
 import pandas as pd
 
-# Configuración de página
+# Configuración básica de la página
 st.set_page_config(
     page_title="Dine's Arts Club - Verificación",
     page_icon="🟢",
     layout="centered"
 )
 
-# Estilos CSS personalizados para replicar el diseño exacto de la imagen
-st.markdown("""
-    <style>
-        /* Ocultar elementos predeterminados de Streamlit */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        
-        /* Fondo general */
-        .stApp {
-            background-color: #f4f6f8;
-        }
-
-        /* Contenedor tipo Tarjeta */
-        .card {
-            background-color: #ffffff;
-            border-radius: 16px;
-            padding: 30px 25px;
-            max-width: 450px;
-            margin: 20px auto;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            border-top: 6px solid #1e7e34;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center;
-        }
-
-        .brand-title {
-            color: #1a3b5d;
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
-            text-transform: uppercase;
-        }
-
-        .brand-subtitle {
-            color: #7f8c8d;
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin-bottom: 20px;
-        }
-
-        .member-name {
-            color: #111111;
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-
-        .member-id {
-            color: #7f8c8d;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        /* Badge de Estado */
-        .status-badge-active {
-            background-color: #28a745;
-            color: white;
-            font-weight: 700;
-            padding: 8px 22px;
-            border-radius: 20px;
-            display: inline-block;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            margin-bottom: 25px;
-            box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
-        }
-
-        .status-badge-inactive {
-            background-color: #dc3545;
-            color: white;
-            font-weight: 700;
-            padding: 8px 22px;
-            border-radius: 20px;
-            display: inline-block;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            margin-bottom: 25px;
-            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
-        }
-
-        /* Secciones de Información */
-        .info-group {
-            text-align: left;
-            padding: 12px 0;
-            border-top: 1px solid #eaeaea;
-        }
-
-        .info-label {
-            color: #8c98a4;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .info-value {
-            color: #212529;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .card-footer {
-            margin-top: 25px;
-            color: #adb5bd;
-            font-size: 11px;
-            text-align: center;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# URL del CSV de Google Sheets (Reemplaza esta URL con la tuya con el gid correcto)
+# Enlace CSV con exportación directa de la pestaña MEMBERS (gid=0)
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1yUYGtwk4GhyQ7fTkeUFvl4g87xtMmI_X2Fr2OudHWDw/export?format=csv&gid=0"
-@st.cache_data(ttl=60)
+
+@st.cache_data(ttl=30)
 def load_data():
     try:
-        df = pd.read_csv(SHEET_CSV_URL)
-        # Limpiar espacios en blanco al inicio o final de los nombres de las columnas
-        df.columns = df.columns.str.strip()
+        # Cargar CSV sin encabezados automáticos para guiarnos por índice exacto de columna
+        df = pd.read_csv(SHEET_CSV_URL, header=None, skiprows=1)
         return df
     except Exception as e:
-        st.error(f"Error al conectar con la base de datos: {e}")
+        st.error(f"Error al conectar con Google Sheets: {e}")
         return None
 
-df_members = load_data()
+df_raw = load_data()
 
-# Obtener ID desde los parámetros de la URL (?id=DA-M-0001)
+# Leer el ID desde la URL (?id=DA-M-0001)
 query_params = st.query_params
 target_id = query_params.get("id", None)
 
-if df_members is not None:
-    # Verificar si existe la columna ID
-    if 'ID' not in df_members.columns:
-        st.error("No se encontró la columna 'ID' en la hoja de datos. Verifica que el enlace CSV apunte a la pestaña 'MEMBERS'.")
-        st.write("Columnas detectadas:", list(df_members.columns))
-    elif not target_id:
-        st.info("Por favor, escanea un código QR válido o especifica un ID en la URL.")
+if df_raw is not None:
+    if not target_id:
+        st.info("⚠️ Por favor, escanea un código QR válido.")
     else:
-        # Normalizar la columna ID y la búsqueda
-        df_members['ID_CLEAN'] = df_members['ID'].astype(str).str.strip().str.upper()
+        # Columna 0 es la Columna A (ID)
+        df_raw[0] = df_raw[0].astype(str).str.strip().str.upper()
         search_id = str(target_id).strip().upper()
         
-        member_data = df_members[df_members['ID_CLEAN'] == search_id]
+        # Buscar la fila correspondiente
+        member_row = df_raw[df_raw[0] == search_id]
         
-        if member_data.empty:
-            st.warning(f"No se encontró ningún miembro registrado con el ID: {target_id}")
+        if member_row.empty:
+            st.error("❌ Miembro no encontrado.")
         else:
-            row = member_data.iloc[0]
+            row = member_row.iloc[0]
             
-            # Obtener variables con valores por defecto si no existen
-            nombre = f"{row.get('Nombre', '')} {row.get('Apellido', '')}".strip()
-            if not nombre:
-                nombre = row.get('Nombre', 'Socio Registrado')
+            # Mapeo idéntico a tu función Apps Script
+            id_miembro = row[0]
+            nombre_completo = f"{row[1]} {row[2]}".strip()
+            limite_actividad = row[8] if pd.notna(row[8]) else "-"
+            fin_anual = row[9] if pd.notna(row[9]) else "-"
+            
+            # Formato de Descuento
+            descuento_raw = row[11] if pd.notna(row[11]) else 0
+            try:
+                descuento_val = float(str(descuento_raw).replace('%', ''))
+                descuento = f"{int(descuento_val * 100)}%" if descuento_val < 1 else f"{int(descuento_val)}%"
+            except:
+                descuento = str(descuento_raw)
                 
-            estado = str(row.get('Estado', 'INACTIVA')).strip().upper()
-            descuento = row.get('Descuento', 'N/A')
-            
-            # Ajusta estos nombres según los encabezados exactos de tus fechas en Sheets
-            limite_actividad = row.get('Fecha Limite', row.get('Próxima Fecha Límite', 'N/A'))
-            vencimiento_anual = row.get('Fecha Vencimiento', row.get('Membresía Válida Hasta', 'N/A'))
-            
-            is_active = estado == "ACTIVA"
-            badge_class = "status-badge-active" if is_active else "status-badge-inactive"
-            badge_icon = "🟢" if is_active else "🔴"
+            estado = str(row[12]).strip().upper() if pd.notna(row[12]) else "INACTIVA"
 
-            # Renderizado de la tarjeta en HTML
-            card_html = f"""
+            # Definir colores e íconos según los 4 estados de tu script original
+            if estado == "ACTIVA":
+                color_estado = "#28a745"
+                icono = "🟢"
+                mensaje_estado = "MEMBRESÍA ACTIVA"
+            elif estado == "INACTIVA":
+                color_estado = "#dc3545"
+                icono = "🔴"
+                mensaje_estado = "MEMBRESÍA INACTIVA (Requiere Reactivación)"
+            elif estado == "POR VENCER":
+                color_estado = "#ffc107"
+                icono = "🟡"
+                mensaje_estado = "MEMBRESÍA POR VENCER"
+            elif estado == "VENCIDA":
+                color_estado = "#6c757d"
+                icono = "⚫"
+                mensaje_estado = "MEMBRESÍA ANUAL VENCIDA"
+            else:
+                color_estado = "#6c757d"
+                icono = "⚪"
+                mensaje_estado = f"ESTADO: {estado}"
+
+            # Estilos CSS y Renderizado HTML
+            html_content = f"""
+            <style>
+                #MainMenu {{visibility: hidden;}}
+                footer {{visibility: hidden;}}
+                header {{visibility: hidden;}}
+                .stApp {{ background-color: #f8f9fa; }}
+                .card {{
+                    background: white;
+                    max-width: 380px;
+                    margin: 20px auto;
+                    padding: 25px;
+                    border-radius: 15px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    border-top: 6px solid {color_estado};
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    text-align: center;
+                    color: #333;
+                }}
+                h1 {{ font-size: 20px; color: #1F4E78; margin-bottom: 5px; margin-top: 0; }}
+                .subtitle {{ font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }}
+                .member-name {{ font-size: 22px; font-weight: bold; margin: 10px 0 5px 0; color: #222; }}
+                .member-id {{ font-size: 14px; color: #777; margin-bottom: 20px; }}
+                .badge {{ display: inline-block; background-color: {color_estado}; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 13px; margin-bottom: 20px; }}
+                .info-group {{ text-align: left; margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px; font-size: 14px; }}
+                .info-label {{ font-size: 11px; color: #888; text-transform: uppercase; }}
+                .info-value {{ font-weight: 600; color: #333; margin-top: 2px; }}
+                .footer {{ margin-top: 25px; font-size: 11px; color: #aaa; }}
+            </style>
+
             <div class="card">
-                <div class="brand-title">Dine's Arts Club</div>
-                <div class="brand-subtitle">Verificación Oficial</div>
+                <h1>DINE'S ARTS CLUB</h1>
+                <div class="subtitle">Verificación Oficial</div>
                 
-                <div class="member-name">{nombre}</div>
-                <div class="member-id">ID: {search_id}</div>
+                <div class="member-name">{nombre_completo}</div>
+                <div class="member-id">ID: {id_miembro}</div>
                 
-                <div>
-                    <span class="{badge_class}">{badge_icon} MEMBRESÍA {estado}</span>
-                </div>
+                <div class="badge">{icono} {mensaje_estado}</div>
                 
                 <div class="info-group">
                     <div class="info-label">Descuento Autorizado:</div>
@@ -198,15 +129,13 @@ if df_members is not None:
                     <div class="info-label">Límite de Actividad Trimestral:</div>
                     <div class="info-value">{limite_actividad}</div>
                 </div>
-                
+
                 <div class="info-group">
                     <div class="info-label">Vencimiento Membresía Anual:</div>
-                    <div class="info-value">{vencimiento_anual}</div>
+                    <div class="info-value">{finAnual}</div>
                 </div>
                 
-                <div class="card-footer">
-                    Sistema de Control de Membresías — Dine's Arts
-                </div>
+                <div class="footer">Sistema de Control de Membresías — Dine's Arts</div>
             </div>
             """
-            st.markdown(card_html, unsafe_allow_html=True)
+            st.markdown(html_content, unsafe_allow_html=True)
