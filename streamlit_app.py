@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
 # Configuración básica de la página
 st.set_page_config(
@@ -15,7 +14,7 @@ SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1yUYGtwk4GhyQ7fTkeUFvl4g
 @st.cache_data(ttl=15)
 def load_data():
     try:
-        # Cargar ignorando la Fila 1 si está vacía o es título, usando la Fila 2 como encabezado (header=1)
+        # Cargar usando la Fila 2 (índice 1) como encabezado de columnas
         df = pd.read_csv(SHEET_CSV_URL, header=1)
         df.columns = df.columns.str.strip()
         return df
@@ -65,7 +64,7 @@ if df_members is not None:
             limite_actividad = str(row.get('Fecha límite de actividad', '-'))
             fin_anual = str(row.get('Fin de membresía anual', '-'))
 
-            # Configurar diseño según el Estado
+            # Configurar colores e íconos según Estado
             if estado == "ACTIVA":
                 color_estado = "#28a745"
                 icono = "🟢"
@@ -87,75 +86,72 @@ if df_members is not None:
                 icono = "🔵"
                 mensaje_estado = f"ESTADO: {estado}"
 
-            # HTML y CSS idénticos al diseño visual de la muestra
-            html_content = f"""
+            # Inyección limpia de CSS sin sangrías
+            css_styles = f"""
             <style>
-                #MainMenu {{visibility: hidden;}}
-                footer {{visibility: hidden;}}
-                header {{visibility: hidden;}}
-                .stApp {{ background-color: #f4f6f8; }}
-                .card {{
-                    background: white;
-                    max-width: 400px;
-                    margin: 10px auto;
-                    padding: 25px;
-                    border-radius: 16px;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-                    border-top: 6px solid {color_estado};
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    text-align: center;
-                }}
-                .brand-title {{ color: #1a3b5d; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase; }}
-                .brand-subtitle {{ color: #7f8c8d; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px; }}
-                .member-name {{ color: #111111; font-size: 24px; font-weight: 700; margin-bottom: 2px; }}
-                .member-id {{ color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }}
-                .badge {{
-                    display: inline-block;
-                    background-color: {color_estado};
-                    color: white;
-                    padding: 8px 22px;
-                    border-radius: 20px;
-                    font-weight: 700;
-                    font-size: 14px;
-                    letter-spacing: 0.5px;
-                    margin-bottom: 20px;
-                    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-                }}
-                .info-group {{ text-align: left; padding: 12px 0; border-top: 1px solid #eaeaea; }}
-                .info-label {{ color: #8c98a4; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }}
-                .info-value {{ color: #212529; font-size: 14px; font-weight: 600; }}
-                .card-footer {{ margin-top: 25px; color: #adb5bd; font-size: 11px; text-align: center; }}
+            #MainMenu {{visibility: hidden;}}
+            footer {{visibility: hidden;}}
+            header {{visibility: hidden;}}
+            .stApp {{ background-color: #f4f6f8; }}
+            .card {{
+                background: #ffffff;
+                max-width: 380px;
+                margin: 0 auto;
+                padding: 25px;
+                border-radius: 16px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+                border-top: 6px solid {color_estado};
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                text-align: center;
+            }}
+            .brand-title {{ color: #1a3b5d; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase; }}
+            .brand-subtitle {{ color: #7f8c8d; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px; }}
+            .member-name {{ color: #111111; font-size: 24px; font-weight: 700; margin-bottom: 2px; }}
+            .member-id {{ color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }}
+            .badge {{
+                display: inline-block;
+                background-color: {color_estado};
+                color: white;
+                padding: 8px 22px;
+                border-radius: 20px;
+                font-weight: 700;
+                font-size: 13px;
+                letter-spacing: 0.5px;
+                margin-bottom: 20px;
+            }}
+            .info-group {{ text-align: left; padding: 12px 0; border-top: 1px solid #eaeaea; }}
+            .info-label {{ color: #8c98a4; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }}
+            .info-value {{ color: #212529; font-size: 14px; font-weight: 600; }}
+            .card-footer {{ margin-top: 25px; color: #adb5bd; font-size: 11px; text-align: center; }}
             </style>
+            """
+            st.html(css_styles)
 
+            # Estructura HTML de la tarjeta
+            card_html = f"""
             <div class="card">
                 <div class="brand-title">Dine's Arts Club</div>
                 <div class="brand-subtitle">Verificación Oficial</div>
-                
                 <div class="member-name">{nombre_completo}</div>
                 <div class="member-id">ID: {search_id}</div>
-                
                 <div>
                     <span class="badge">{icono} {mensaje_estado}</span>
                 </div>
-                
                 <div class="info-group">
                     <div class="info-label">Descuento Autorizado:</div>
                     <div class="info-value">{descuento}</div>
                 </div>
-                
                 <div class="info-group">
                     <div class="info-label">Límite de Actividad Trimestral:</div>
                     <div class="info-value">{limite_actividad}</div>
                 </div>
-
                 <div class="info-group">
                     <div class="info-label">Vencimiento Membresía Anual:</div>
                     <div class="info-value">{fin_anual}</div>
                 </div>
-                
                 <div class="card-footer">
                     Sistema de Control de Membresías — Dine's Arts
                 </div>
             </div>
             """
-            st.markdown(html_content, unsafe_allow_html=True)
+            st.html(card_html)
