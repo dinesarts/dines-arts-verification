@@ -95,7 +95,7 @@ query_params = st.query_params
 id_buscado = query_params.get("id", None)
 
 # URL pública de tu Google Sheet expuesta en formato CSV
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1Whh-Isp3LKYXrcQ467C51XL78P_oySBm5yxd2BVGClI/export?format=csv&gid=id=DA-M-0001"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1yUYGtwk4GhyQ7fTkeUFvl4g87xtMmI_X2Fr2OudHWDw/export?format=csv&gid=0"
 
 @st.cache_data(ttl=60)
 def cargar_datos():
